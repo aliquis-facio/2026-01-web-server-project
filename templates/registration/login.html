@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}로그인 | ASCII Motion Board{% endblock %}
+
+{% block content %}
+<section class="auth-panel">
+  <h1>로그인</h1>
+  <form method="post" class="form-stack">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <label>
+      아이디
+      {{ form.username }}
+      {{ form.username.errors }}
+    </label>
+    <label>
+      비밀번호
+      {{ form.password }}
+      {{ form.password.errors }}
+    </label>
+    <button class="button" type="submit">로그인</button>
+  </form>
+</section>
+{% endblock %}

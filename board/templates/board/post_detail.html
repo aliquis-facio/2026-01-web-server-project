@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ post.title }} | ASCII Motion Board{% endblock %}
+
+{% block content %}
+<article class="detail-layout">
+  <section class="detail-header">
+    <div>
+      <span class="status status-{{ post.status|lower }}">{{ post.get_status_display }}</span>
+      <h1>{{ post.title }}</h1>
+      <p>{{ post.author.username }} · {{ post.created_at|date:"Y.m.d H:i" }} · 조회 {{ post.view_count }}</p>
+    </div>
+    <div class="action-row">
+      {% if user == post.author %}
+        <a class="button button-secondary" href="{% url 'post_update' post.pk %}">수정</a>
+        <a class="button button-danger" href="{% url 'post_delete' post.pk %}">삭제</a>
+      {% endif %}
+      <a class="button button-ghost" href="{% url 'post_list' %}">목록</a>
+    </div>
+  </section>
+
+  {% if post.content %}
+    <section class="content-block">
+      <p>{{ post.content|linebreaksbr }}</p>
+    </section>
+  {% endif %}
+
+  {% if post.status == "FAILED" and post.error_message %}
+    <section class="message message-error">
+      {{ post.error_message }}
+    </section>
+  {% endif %}
+
+  <section class="media-grid media-comparison">
+    <div class="media-panel">
+      <h2>{% if post.is_image %}원본 이미지{% else %}원본 영상{% endif %}</h2>
+      {% if post.image %}
+        <img class="source-preview" src="{{ post.image.url }}" alt="{{ post.title }} 원본 이미지">
+      {% elif post.video %}
+        <video src="{{ post.video.url }}" controls></video>
+      {% else %}
+        <p class="muted">업로드된 파일이 없습니다.</p>
+      {% endif %}
+    </div>
+
+    <div class="media-panel ascii-media-panel">
+      <div class="media-panel-heading">
+        <h2>{% if post.is_image %}ASCII ART{% else %}ASCII 애니메이션{% endif %}</h2>
+        {% if post.is_video and ascii_frames|length > 1 %}
+          <div class="action-row">
+            <button class="button button-secondary" id="ascii-prev" type="button">이전</button>
+            <button class="button button-secondary" id="ascii-toggle" type="button">정지</button>
+            <button class="button button-secondary" id="ascii-next" type="button">다음</button>
+          </div>
+        {% endif %}
+      </div>
+
+      {{ ascii_frames|json_script:"ascii-frames-data" }}
+      <pre id="ascii-player" class="ascii-art" data-duration="{{ post.gif_duration }}" data-columns="{{ post.ascii_width|default:100 }}">{% if ascii_frames %}{{ ascii_frames.0 }}{% else %}ASCII 프레임이 없습니다.{% endif %}</pre>
+      <script src="{% static 'js/ascii_player.js' %}"></script>
+    </div>
+  </section>
+
+  <section class="download-row">
+    <a class="button" href="{% url 'download_ascii_txt' post.pk %}">TXT 다운로드</a>
+    {% if post.is_video and post.ascii_gif %}
+      <a class="button" href="{% url 'download_ascii_gif' post.pk %}">GIF 다운로드</a>
+    {% endif %}
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'toggle_like' post.pk %}">
+        {% csrf_token %}
+        <button class="button button-secondary" type="submit">{% if liked %}좋아요 취소{% else %}좋아요{% endif %}</button>
+      </form>
+    {% endif %}
+    <span>좋아요 {{ post.likes.count }}</span>
+  </section>
+
+  <section class="comments">
+    <div class="section-heading">
+      <h2>댓글</h2>
+      <span>{{ post.comments.count }}</span>
+    </div>
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'comment_create' post.pk %}" class="form-stack comment-form">
+        {% csrf_token %}
+        {{ comment_form.content }}
+        <button class="button button-secondary" type="submit">등록</button>
+      </form>
+    {% endif %}
+    {% for comment in post.comments.all %}
+      <div class="comment-item">
+        <strong>{{ comment.author.username }}</strong>
+        <span>{{ comment.created_at|date:"Y.m.d H:i" }}</span>
+        <p>{{ comment.content|linebreaksbr }}</p>
+      </div>
+    {% empty %}
+      <p class="muted">댓글이 없습니다.</p>
+    {% endfor %}
+  </section>
+</article>
+{% endblock %}

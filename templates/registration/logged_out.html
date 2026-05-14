@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %}로그아웃 | ASCII Motion Board{% endblock %}
+
+{% block content %}
+<section class="empty-state">
+  <h1>로그아웃되었습니다.</h1>
+  <a class="button" href="{% url 'post_list' %}">목록으로</a>
+</section>
+{% endblock %}

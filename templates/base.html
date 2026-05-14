@@ -1,0 +1,38 @@
+{% load static %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ASCII Motion Board{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/ascii.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{% url 'post_list' %}">ASCII Motion Board</a>
+    <nav class="nav">
+      {% if user.is_authenticated %}
+        <span class="nav-user">{{ user.username }}</span>
+        <form class="inline-form" action="{% url 'logout' %}" method="post">
+          {% csrf_token %}
+          <button class="button button-ghost" type="submit">로그아웃</button>
+        </form>
+      {% else %}
+        <a class="button button-ghost" href="{% url 'login' %}">로그인</a>
+        <a class="button" href="{% url 'signup' %}">회원가입</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page">
+    {% if messages %}
+      <section class="messages">
+        {% for message in messages %}
+          <p class="message message-{{ message.tags }}">{{ message }}</p>
+        {% endfor %}
+      </section>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mode == "create" %}글 작성{% else %}글 수정{% endif %} | ASCII Motion Board{% endblock %}
+
+{% block content %}
+<section class="form-layout">
+  <div class="section-heading">
+    <h1>{% if mode == "create" %}글 작성{% else %}글 수정{% endif %}</h1>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="form-stack">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <label>
+      제목
+      {{ form.title }}
+      {{ form.title.errors }}
+    </label>
+
+    <label>
+      내용
+      {{ form.content }}
+      {{ form.content.errors }}
+    </label>
+
+    <div class="upload-grid">
+      <label>
+        이미지 파일
+        {{ form.image }}
+        {{ form.image.errors }}
+      </label>
+
+      <label>
+        영상 파일
+        {{ form.video }}
+        {{ form.video.errors }}
+      </label>
+    </div>
+
+    <div class="option-grid">
+      <label>
+        ASCII 너비
+        {{ form.ascii_width }}
+        <span class="field-help">비워두면 원본 이미지/영상의 width를 사용합니다.</span>
+        {{ form.ascii_width.errors }}
+      </label>
+      <label>
+        추출 프레임 수(영상)
+        {{ form.max_frames }}
+        {{ form.max_frames.errors }}
+      </label>
+      <label>
+        프레임 간격(영상)
+        {{ form.frame_interval }}
+        {{ form.frame_interval.errors }}
+      </label>
+      <label>
+        GIF 속도(ms, 영상)
+        {{ form.gif_duration }}
+        {{ form.gif_duration.errors }}
+      </label>
+      <label>
+        문자 스타일
+        {{ form.char_style }}
+        {{ form.char_style.errors }}
+      </label>
+    </div>
+
+    <div class="action-row">
+      <button class="button" type="submit">저장</button>
+      <a class="button button-ghost" href="{% if post %}{% url 'post_detail' post.pk %}{% else %}{% url 'post_list' %}{% endif %}">취소</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

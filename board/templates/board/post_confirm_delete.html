@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}삭제 확인 | ASCII Motion Board{% endblock %}
+
+{% block content %}
+<section class="auth-panel">
+  <h1>게시글 삭제</h1>
+  <p>{{ post.title }} 게시글을 삭제합니다.</p>
+  <form method="post" class="action-row">
+    {% csrf_token %}
+    <button class="button button-danger" type="submit">삭제</button>
+    <a class="button button-ghost" href="{% url 'post_detail' post.pk %}">취소</a>
+  </form>
+</section>
+{% endblock %}

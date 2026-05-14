@@ -1,0 +1,9 @@
+.venv312/
+__pycache__/
+*.py[cod]
+db.sqlite3
+media/videos/
+media/images/
+media/ascii_gifs/
+media/temp/
+.env

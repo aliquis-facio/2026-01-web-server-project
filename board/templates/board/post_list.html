@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}게시글 목록 | ASCII Motion Board{% endblock %}
+
+{% block content %}
+<section class="toolbar">
+  <div>
+    <h1>ASCII ART 게시판</h1>
+    <p>이미지는 ASCII ART로, 영상은 ASCII 애니메이션으로 변환합니다.</p>
+  </div>
+  {% if user.is_authenticated %}
+    <a class="button" href="{% url 'post_create' %}">글 작성</a>
+  {% else %}
+    <a class="button" href="{% url 'login' %}">로그인 후 작성</a>
+  {% endif %}
+</section>
+
+<form class="search-bar" method="get">
+  <input type="search" name="q" value="{{ query }}" placeholder="제목 또는 내용 검색">
+  <select name="sort">
+    <option value="latest" {% if sort == "latest" %}selected{% endif %}>최신순</option>
+    <option value="views" {% if sort == "views" %}selected{% endif %}>조회순</option>
+    <option value="likes" {% if sort == "likes" %}selected{% endif %}>좋아요순</option>
+  </select>
+  <button class="button button-secondary" type="submit">검색</button>
+</form>
+
+{% if posts %}
+  <section class="post-grid">
+    {% for post in posts %}
+      <article class="post-card">
+        <a class="post-thumb" href="{% url 'post_detail' post.pk %}">
+          {% if post.ascii_gif %}
+            <img src="{{ post.ascii_gif.url }}" alt="{{ post.title }} ASCII GIF">
+          {% elif post.image %}
+            <img src="{{ post.image.url }}" alt="{{ post.title }} 원본 이미지">
+          {% else %}
+            <span>{{ post.get_status_display }}</span>
+          {% endif %}
+        </a>
+        <div class="post-card-body">
+          <div class="status-row">
+            <span class="status status-{{ post.status|lower }}">{{ post.get_status_display }}</span>
+            <span>{{ post.get_media_type_display }}</span>
+            <span>{{ post.created_at|date:"Y.m.d H:i" }}</span>
+          </div>
+          <h2><a href="{% url 'post_detail' post.pk %}">{{ post.title }}</a></h2>
+          <p>{{ post.content|default:"내용 없음"|truncatechars:80 }}</p>
+          <div class="meta-row">
+            <span>{{ post.author.username }}</span>
+            <span>조회 {{ post.view_count }}</span>
+            <span>좋아요 {{ post.like_count }}</span>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+{% else %}
+  <section class="empty-state">
+    <h2>게시글이 없습니다.</h2>
+    {% if user.is_authenticated %}
+      <a class="button" href="{% url 'post_create' %}">첫 게시글 작성</a>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}
