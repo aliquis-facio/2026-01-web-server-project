@@ -11,7 +11,7 @@ from .converters import (
     get_image_dimensions,
     get_video_dimensions,
 )
-from .gif import GifRenderError, ascii_frames_to_gif
+from .gif import GifRenderError, ascii_frames_to_gif, ascii_text_to_image
 
 
 def process_post(post):
@@ -50,7 +50,15 @@ def process_post(post):
         temp_dir = Path(settings.MEDIA_ROOT) / "temp"
         temp_dir.mkdir(parents=True, exist_ok=True)
         temp_gif = None
-        if post.video:
+        temp_image = None
+        if post.image:
+            temp_image = temp_dir / f"post_{post.pk}_ascii.png"
+            ascii_text_to_image(
+                ascii_frames[0],
+                font_size=10,
+                padding=18,
+            ).save(temp_image)
+        elif post.video:
             temp_gif = temp_dir / f"post_{post.pk}_ascii.gif"
             ascii_frames_to_gif(
                 ascii_frames,
@@ -74,15 +82,27 @@ def process_post(post):
 
             if post.ascii_gif:
                 post.ascii_gif.delete(save=False)
+            if post.ascii_image:
+                post.ascii_image.delete(save=False)
 
-            if temp_gif:
+            if temp_image:
+                with temp_image.open("rb") as image_file:
+                    post.ascii_image.save(
+                        f"post_{post.pk}_ascii.png",
+                        File(image_file),
+                        save=False,
+                    )
+                post.ascii_gif = None
+            elif temp_gif:
                 with temp_gif.open("rb") as gif_file:
                     post.ascii_gif.save(
                         f"post_{post.pk}_ascii.gif",
                         File(gif_file),
                         save=False,
                     )
+                post.ascii_image = None
             else:
+                post.ascii_image = None
                 post.ascii_gif = None
 
             post.status = Post.Status.DONE
@@ -90,6 +110,7 @@ def process_post(post):
             post.save(
                 update_fields=[
                     "ascii_width",
+                    "ascii_image",
                     "ascii_gif",
                     "status",
                     "error_message",
@@ -97,6 +118,8 @@ def process_post(post):
                 ]
             )
 
+        if temp_image:
+            temp_image.unlink(missing_ok=True)
         if temp_gif:
             temp_gif.unlink(missing_ok=True)
         return ascii_frames

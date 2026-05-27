@@ -4,6 +4,7 @@ __pycache__/
 db.sqlite3
 media/videos/
 media/images/
+media/ascii_images/
 media/ascii_gifs/
 media/temp/
 .env

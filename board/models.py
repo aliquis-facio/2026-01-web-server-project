@@ -30,6 +30,8 @@ class Post(models.Model):
     )
     image = models.FileField(upload_to="images/", blank=True, null=True)
     video = models.FileField(upload_to="videos/", blank=True, null=True)
+    source_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    ascii_image = models.FileField(upload_to="ascii_images/", blank=True, null=True)
     ascii_gif = models.FileField(upload_to="ascii_gifs/", blank=True, null=True)
 
     ascii_width = models.PositiveIntegerField(blank=True, null=True)

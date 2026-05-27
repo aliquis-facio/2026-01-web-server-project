@@ -3,22 +3,42 @@
 {% block title %}로그인 | ASCII Motion Board{% endblock %}
 
 {% block content %}
-<section class="auth-panel">
-  <h1>로그인</h1>
-  <form method="post" class="form-stack">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    <label>
-      아이디
-      {{ form.username }}
-      {{ form.username.errors }}
-    </label>
-    <label>
-      비밀번호
-      {{ form.password }}
-      {{ form.password.errors }}
-    </label>
-    <button class="button" type="submit">로그인</button>
-  </form>
+<section class="auth-shell">
+  <div class="auth-copy">
+    <p class="eyebrow">ASCII ART BOARD</p>
+    <h1>이미지와 영상을 문자 픽셀로 저장하는 보드</h1>
+    <p>업로드한 원본 미디어를 ASCII 이미지와 애니메이션으로 변환하고, 마음에 드는 작업을 컬렉션에 저장하세요.</p>
+    <div class="ascii-sample" aria-hidden="true">
+      <pre>@@@@@###***++==--::..
+@@@###**++==--::..   
+###**++==--::..      
+**++==--::..         
++==--::..            
+--::..</pre>
+    </div>
+  </div>
+
+  <section class="auth-panel">
+    <h2>{% if is_index_login %}로그인하고 피드 보기{% else %}로그인{% endif %}</h2>
+    <form method="post" action="{% url 'login' %}" class="form-stack">
+      {% csrf_token %}
+      {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+      {% endif %}
+      {{ form.non_field_errors }}
+      <label>
+        아이디
+        {{ form.username }}
+        {{ form.username.errors }}
+      </label>
+      <label>
+        비밀번호
+        {{ form.password }}
+        {{ form.password.errors }}
+      </label>
+      <button class="button button-primary" type="submit">로그인</button>
+    </form>
+    <p class="auth-alt">계정이 없으면 <a href="{% url 'signup' %}">회원가입</a></p>
+  </section>
 </section>
 {% endblock %}

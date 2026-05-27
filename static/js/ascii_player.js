@@ -17,14 +17,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const fitAsciiToPanel = () => {
     const declaredColumns = Number(player.dataset.columns || 0);
-    const firstLine = (frames[index] || "").split("\n")[0] || "";
-    const columns = Math.max(1, declaredColumns || firstLine.length);
+    const lines = (frames[index] || "").split("\n");
+    const maxLineLength = lines.reduce((max, line) => Math.max(max, line.length), 0);
+    const columns = Math.max(1, maxLineLength || declaredColumns);
+    const rows = Math.max(1, lines.length);
     const style = window.getComputedStyle(player);
     const horizontalPadding =
       Number.parseFloat(style.paddingLeft || "0") +
       Number.parseFloat(style.paddingRight || "0");
+    const verticalPadding =
+      Number.parseFloat(style.paddingTop || "0") +
+      Number.parseFloat(style.paddingBottom || "0");
     const availableWidth = Math.max(1, player.clientWidth - horizontalPadding);
-    const fontSize = Math.min(8, Math.max(0.25, availableWidth / (columns * 0.62)));
+    const availableHeight = Math.max(1, player.clientHeight - verticalPadding);
+    const widthFit = availableWidth / (columns * 0.62);
+    const heightFit = availableHeight / rows;
+    const fontSize = Math.min(8, Math.max(0.2, Math.min(widthFit, heightFit)));
     player.style.fontSize = `${fontSize}px`;
     player.style.lineHeight = `${fontSize}px`;
   };
@@ -75,4 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
   render();
   if (frames.length > 1) start();
   window.addEventListener("resize", fitAsciiToPanel);
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(fitAsciiToPanel).observe(player);
+  }
 });

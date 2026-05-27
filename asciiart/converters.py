@@ -11,6 +11,8 @@ ASCII_CHARSETS = {
     "dots": "@#*+=-:. ",
 }
 
+ASCII_RENDER_FONT_SIZE = 10
+
 
 def _load_cv2():
     try:
@@ -39,7 +41,7 @@ def _gray_pixels_to_ascii(pixels, image_width, image_height, charset):
     lines = []
     for y in range(image_height):
         row = pixels[y * image_width : (y + 1) * image_width]
-        line = "".join(chars[int(pixel * scale)] for pixel in row)
+        line = "".join(chars[int((255 - pixel) * scale)] for pixel in row)
         lines.append(line)
 
     return "\n".join(lines)
@@ -49,6 +51,14 @@ def _resolve_width(width, source_width):
     if width in (None, ""):
         return max(1, int(source_width))
     return max(1, int(width))
+
+
+def _resolve_ascii_height(width, source_width, source_height):
+    from .gif import get_ascii_cell_aspect
+
+    source_ratio = source_height / source_width
+    cell_aspect = get_ascii_cell_aspect(font_size=ASCII_RENDER_FONT_SIZE)
+    return max(1, round(width * source_ratio * cell_aspect))
 
 
 def get_image_dimensions(image_path):
@@ -116,8 +126,7 @@ def frame_to_ascii(frame, width=None, charset="standard"):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     original_height, original_width = gray.shape
     width = _resolve_width(width, original_width)
-    ratio = original_height / original_width
-    target_height = max(1, int(width * ratio * 0.45))
+    target_height = _resolve_ascii_height(width, original_width, original_height)
     resized = cv2.resize(gray, (width, target_height))
 
     pixels = [int(pixel) for row in resized for pixel in row]
@@ -132,8 +141,7 @@ def image_to_ascii(image_path, width=None, charset="standard"):
             gray = ImageOps.grayscale(image)
             original_width, original_height = gray.size
             width = _resolve_width(width, original_width)
-            ratio = original_height / original_width
-            target_height = max(1, int(width * ratio * 0.45))
+            target_height = _resolve_ascii_height(width, original_width, original_height)
             resized = gray.resize((width, target_height))
             pixels = list(resized.getdata())
     except OSError as exc:

@@ -8,7 +8,7 @@
     <h1>{% if mode == "create" %}글 작성{% else %}글 수정{% endif %}</h1>
   </div>
 
-  <form method="post" enctype="multipart/form-data" class="form-stack">
+  <form method="post" enctype="multipart/form-data" class="form-stack" data-upload-form>
     {% csrf_token %}
     {{ form.non_field_errors }}
 
@@ -68,9 +68,21 @@
     </div>
 
     <div class="action-row">
-      <button class="button" type="submit">저장</button>
+      <button class="button" type="submit" data-submit-button>저장</button>
       <a class="button button-ghost" href="{% if post %}{% url 'post_detail' post.pk %}{% else %}{% url 'post_list' %}{% endif %}">취소</a>
     </div>
   </form>
 </section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.querySelector("[data-upload-form]");
+    form?.addEventListener("submit", () => {
+      const submitButton = form.querySelector("[data-submit-button]");
+      if (!submitButton) return;
+      submitButton.disabled = true;
+      submitButton.textContent = "변환 중";
+    });
+  });
+</script>
 {% endblock %}

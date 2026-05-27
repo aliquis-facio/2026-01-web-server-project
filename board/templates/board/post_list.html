@@ -1,55 +1,77 @@
 {% extends "base.html" %}
 
-{% block title %}게시글 목록 | ASCII Motion Board{% endblock %}
+{% block title %}피드 | ASCII Motion Board{% endblock %}
 
 {% block content %}
-<section class="toolbar">
+<section class="feed-topbar">
   <div>
-    <h1>ASCII ART 게시판</h1>
-    <p>이미지는 ASCII ART로, 영상은 ASCII 애니메이션으로 변환합니다.</p>
+    <p class="eyebrow">ASCII COLLECTION</p>
+    <h1>ASCII ART 피드</h1>
   </div>
-  {% if user.is_authenticated %}
-    <a class="button" href="{% url 'post_create' %}">글 작성</a>
-  {% else %}
-    <a class="button" href="{% url 'login' %}">로그인 후 작성</a>
-  {% endif %}
+  <a class="button button-primary" href="{% url 'post_create' %}">업로드</a>
 </section>
 
-<form class="search-bar" method="get">
-  <input type="search" name="q" value="{{ query }}" placeholder="제목 또는 내용 검색">
-  <select name="sort">
-    <option value="latest" {% if sort == "latest" %}selected{% endif %}>최신순</option>
-    <option value="views" {% if sort == "views" %}selected{% endif %}>조회순</option>
-    <option value="likes" {% if sort == "likes" %}selected{% endif %}>좋아요순</option>
-  </select>
-  <button class="button button-secondary" type="submit">검색</button>
+<form class="feed-controls" method="get">
+  <input type="hidden" name="scope" value="{{ scope }}">
+  <label class="search-field">
+    <span>검색</span>
+    <input type="search" name="q" value="{{ query }}" placeholder="제목 또는 설명 검색">
+  </label>
+  <label>
+    <span>정렬</span>
+    <select name="sort">
+      <option value="latest" {% if sort == "latest" %}selected{% endif %}>최신순</option>
+      <option value="views" {% if sort == "views" %}selected{% endif %}>조회순</option>
+      <option value="likes" {% if sort == "likes" %}selected{% endif %}>저장순</option>
+    </select>
+  </label>
+  <button class="button button-secondary" type="submit">적용</button>
 </form>
 
+<nav class="scope-tabs" aria-label="피드 필터">
+  <a class="{% if scope == 'all' %}active{% endif %}" href="{% url 'post_list' %}?scope=all{% if query %}&q={{ query|urlencode }}{% endif %}&sort={{ sort }}">전체</a>
+  <a class="{% if scope == 'saved' %}active{% endif %}" href="{% url 'post_list' %}?scope=saved{% if query %}&q={{ query|urlencode }}{% endif %}&sort={{ sort }}">저장됨</a>
+  <a class="{% if scope == 'mine' %}active{% endif %}" href="{% url 'post_list' %}?scope=mine{% if query %}&q={{ query|urlencode }}{% endif %}&sort={{ sort }}">내 업로드</a>
+</nav>
+
 {% if posts %}
-  <section class="post-grid">
+  <section class="masonry-feed" aria-label="ASCII 아트 목록">
     {% for post in posts %}
       <article class="post-card">
-        <a class="post-thumb" href="{% url 'post_detail' post.pk %}">
-          {% if post.ascii_gif %}
-            <img src="{{ post.ascii_gif.url }}" alt="{{ post.title }} ASCII GIF">
-          {% elif post.image %}
-            <img src="{{ post.image.url }}" alt="{{ post.title }} 원본 이미지">
-          {% else %}
-            <span>{{ post.get_status_display }}</span>
-          {% endif %}
-        </a>
+        <div class="post-thumb">
+          <a href="{% url 'post_detail' post.pk %}" aria-label="{{ post.title }} 상세 보기">
+            {% if post.ascii_image %}
+              <img src="{{ post.ascii_image.url }}" alt="{{ post.title }} ASCII 이미지">
+            {% elif post.ascii_gif %}
+              <img src="{{ post.ascii_gif.url }}" alt="{{ post.title }} ASCII GIF">
+            {% elif post.image %}
+              <img src="{{ post.image.url }}" alt="{{ post.title }} 원본 이미지">
+            {% else %}
+              <span>{{ post.get_status_display }}</span>
+            {% endif %}
+          </a>
+          <form class="save-form" method="post" action="{% url 'toggle_like' post.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button class="save-button {% if post.pk in saved_post_ids %}is-saved{% endif %}" type="submit">
+              {% if post.pk in saved_post_ids %}저장됨{% else %}저장{% endif %}
+            </button>
+          </form>
+        </div>
+
         <div class="post-card-body">
-          <div class="status-row">
+          <div class="card-kicker">
             <span class="status status-{{ post.status|lower }}">{{ post.get_status_display }}</span>
             <span>{{ post.get_media_type_display }}</span>
-            <span>{{ post.created_at|date:"Y.m.d H:i" }}</span>
           </div>
           <h2><a href="{% url 'post_detail' post.pk %}">{{ post.title }}</a></h2>
-          <p>{{ post.content|default:"내용 없음"|truncatechars:80 }}</p>
+          {% if post.content %}
+            <p>{{ post.content|truncatechars:90 }}</p>
+          {% endif %}
           <div class="meta-row">
             <span>{{ post.author.username }}</span>
             <span>조회 {{ post.view_count }}</span>
-            <span>좋아요 {{ post.like_count }}</span>
+            <span>저장 {{ post.like_count }}</span>
           </div>
         </div>
       </article>
@@ -57,10 +79,8 @@
   </section>
 {% else %}
   <section class="empty-state">
-    <h2>게시글이 없습니다.</h2>
-    {% if user.is_authenticated %}
-      <a class="button" href="{% url 'post_create' %}">첫 게시글 작성</a>
-    {% endif %}
+    <h2>{% if scope == "saved" %}저장한 ASCII 아트가 없습니다.{% elif scope == "mine" %}업로드한 ASCII 아트가 없습니다.{% else %}게시글이 없습니다.{% endif %}</h2>
+    <a class="button button-primary" href="{% url 'post_create' %}">첫 ASCII 아트 업로드</a>
   </section>
 {% endif %}
 {% endblock %}

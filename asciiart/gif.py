@@ -5,6 +5,9 @@ class GifRenderError(Exception):
     pass
 
 
+RENDER_SAMPLE_TEXT = "Ag@#WMgjpqy"
+
+
 def _load_pillow():
     try:
         from PIL import Image, ImageDraw, ImageFont
@@ -28,6 +31,25 @@ def _load_monospace_font(ImageFont, font_size):
     return ImageFont.load_default()
 
 
+def get_ascii_cell_metrics(font_size=10):
+    Image, ImageDraw, ImageFont = _load_pillow()
+    font = _load_monospace_font(ImageFont, font_size)
+    probe = Image.new("RGB", (1, 1))
+    draw = ImageDraw.Draw(probe)
+
+    char_bbox = draw.textbbox((0, 0), "M", font=font)
+    sample_bbox = draw.textbbox((0, 0), RENDER_SAMPLE_TEXT, font=font)
+    char_width = max(1, char_bbox[2] - char_bbox[0])
+    glyph_height = max(1, sample_bbox[3] - sample_bbox[1])
+    line_gap = max(1, int(font_size * 0.25))
+    return char_width, glyph_height, line_gap
+
+
+def get_ascii_cell_aspect(font_size=10):
+    char_width, glyph_height, line_gap = get_ascii_cell_metrics(font_size=font_size)
+    return char_width / (glyph_height + line_gap)
+
+
 def ascii_text_to_image(
     ascii_text,
     font_size=10,
@@ -38,23 +60,19 @@ def ascii_text_to_image(
     Image, ImageDraw, ImageFont = _load_pillow()
     font = _load_monospace_font(ImageFont, font_size)
     lines = ascii_text.splitlines() or [""]
+    _, glyph_height, line_gap = get_ascii_cell_metrics(font_size=font_size)
 
     probe = Image.new("RGB", (1, 1))
     draw = ImageDraw.Draw(probe)
 
     max_width = 1
-    total_height = 0
-    line_metrics = []
     for line in lines:
         bbox = draw.textbbox((0, 0), line or " ", font=font)
         width = max(1, bbox[2] - bbox[0])
-        height = max(1, bbox[3] - bbox[1])
         max_width = max(max_width, width)
-        total_height += height
-        line_metrics.append((line, height))
 
-    line_gap = max(1, int(font_size * 0.25))
-    total_height += line_gap * max(0, len(lines) - 1)
+    line_pitch = glyph_height + line_gap
+    total_height = glyph_height * len(lines) + line_gap * max(0, len(lines) - 1)
 
     image = Image.new(
         "RGB",
@@ -64,9 +82,9 @@ def ascii_text_to_image(
     draw = ImageDraw.Draw(image)
 
     y = padding
-    for line, height in line_metrics:
+    for line in lines:
         draw.text((padding, y), line, font=font, fill=foreground)
-        y += height + line_gap
+        y += line_pitch
 
     return image
 

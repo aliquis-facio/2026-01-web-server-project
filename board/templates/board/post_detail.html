@@ -7,16 +7,29 @@
 <article class="detail-layout">
   <section class="detail-header">
     <div>
-      <span class="status status-{{ post.status|lower }}">{{ post.get_status_display }}</span>
+      <div class="card-kicker">
+        <span class="status status-{{ post.status|lower }}">{{ post.get_status_display }}</span>
+        <span>{{ post.get_media_type_display }}</span>
+        <span>{{ post.created_at|date:"Y.m.d H:i" }}</span>
+      </div>
       <h1>{{ post.title }}</h1>
-      <p>{{ post.author.username }} · {{ post.created_at|date:"Y.m.d H:i" }} · 조회 {{ post.view_count }}</p>
+      <p>{{ post.author.username }} · 조회 {{ post.view_count }} · 저장 {{ post.likes.count }}</p>
     </div>
     <div class="action-row">
+      {% if user.is_authenticated %}
+        <form method="post" action="{% url 'toggle_like' post.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="button button-primary" type="submit">{% if liked %}저장됨{% else %}저장{% endif %}</button>
+        </form>
+      {% else %}
+        <a class="button button-primary" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">저장</a>
+      {% endif %}
       {% if user == post.author %}
         <a class="button button-secondary" href="{% url 'post_update' post.pk %}">수정</a>
         <a class="button button-danger" href="{% url 'post_delete' post.pk %}">삭제</a>
       {% endif %}
-      <a class="button button-ghost" href="{% url 'post_list' %}">목록</a>
+      <a class="button button-ghost" href="{% url 'post_list' %}">피드</a>
     </div>
   </section>
 
@@ -34,46 +47,53 @@
 
   <section class="media-grid media-comparison">
     <div class="media-panel">
-      <h2>{% if post.is_image %}원본 이미지{% else %}원본 영상{% endif %}</h2>
+      <div class="media-panel-heading">
+        <h2>{% if post.is_image %}원본 이미지{% else %}원본 영상{% endif %}</h2>
+      </div>
       {% if post.image %}
         <img class="source-preview" src="{{ post.image.url }}" alt="{{ post.title }} 원본 이미지">
       {% elif post.video %}
-        <video src="{{ post.video.url }}" controls></video>
+        <video class="source-preview" src="{{ post.video.url }}" controls></video>
       {% else %}
         <p class="muted">업로드된 파일이 없습니다.</p>
       {% endif %}
     </div>
 
-    <div class="media-panel ascii-media-panel">
+    <div class="media-panel">
       <div class="media-panel-heading">
-        <h2>{% if post.is_image %}ASCII ART{% else %}ASCII 애니메이션{% endif %}</h2>
-        {% if post.is_video and ascii_frames|length > 1 %}
-          <div class="action-row">
-            <button class="button button-secondary" id="ascii-prev" type="button">이전</button>
-            <button class="button button-secondary" id="ascii-toggle" type="button">정지</button>
-            <button class="button button-secondary" id="ascii-next" type="button">다음</button>
-          </div>
-        {% endif %}
+        <h2>{% if post.is_image %}변환된 ASCII 이미지{% else %}변환된 ASCII 영상{% endif %}</h2>
       </div>
-
-      {{ ascii_frames|json_script:"ascii-frames-data" }}
-      <pre id="ascii-player" class="ascii-art" data-duration="{{ post.gif_duration }}" data-columns="{{ post.ascii_width|default:100 }}">{% if ascii_frames %}{{ ascii_frames.0 }}{% else %}ASCII 프레임이 없습니다.{% endif %}</pre>
-      <script src="{% static 'js/ascii_player.js' %}"></script>
+      {% if post.ascii_image %}
+        <img class="source-preview ascii-preview-image" src="{{ post.ascii_image.url }}" alt="{{ post.title }} ASCII 이미지">
+      {% elif post.ascii_gif %}
+        <img class="source-preview ascii-preview-image" src="{{ post.ascii_gif.url }}" alt="{{ post.title }} ASCII GIF">
+      {% else %}
+        <pre class="ascii-art ascii-art-compact">{% if ascii_frames %}{{ ascii_frames.0 }}{% else %}ASCII 변환 결과가 없습니다.{% endif %}</pre>
+      {% endif %}
     </div>
   </section>
 
+  <section class="player-section">
+    <div class="media-panel-heading">
+      <h2>ASCII 텍스트 프레임</h2>
+      {% if post.is_video and ascii_frames|length > 1 %}
+        <div class="action-row">
+          <button class="button button-secondary" id="ascii-prev" type="button">이전</button>
+          <button class="button button-secondary" id="ascii-toggle" type="button">정지</button>
+          <button class="button button-secondary" id="ascii-next" type="button">다음</button>
+        </div>
+      {% endif %}
+    </div>
+    {{ ascii_frames|json_script:"ascii-frames-data" }}
+    <pre id="ascii-player" class="ascii-art" data-duration="{{ post.gif_duration }}" data-columns="{{ post.ascii_width|default:100 }}">{% if ascii_frames %}{{ ascii_frames.0 }}{% else %}ASCII 프레임이 없습니다.{% endif %}</pre>
+    <script src="{% static 'js/ascii_player.js' %}"></script>
+  </section>
+
   <section class="download-row">
-    <a class="button" href="{% url 'download_ascii_txt' post.pk %}">TXT 다운로드</a>
+    <a class="button button-secondary" href="{% url 'download_ascii_txt' post.pk %}">TXT 다운로드</a>
     {% if post.is_video and post.ascii_gif %}
-      <a class="button" href="{% url 'download_ascii_gif' post.pk %}">GIF 다운로드</a>
+      <a class="button button-secondary" href="{% url 'download_ascii_gif' post.pk %}">GIF 다운로드</a>
     {% endif %}
-    {% if user.is_authenticated %}
-      <form method="post" action="{% url 'toggle_like' post.pk %}">
-        {% csrf_token %}
-        <button class="button button-secondary" type="submit">{% if liked %}좋아요 취소{% else %}좋아요{% endif %}</button>
-      </form>
-    {% endif %}
-    <span>좋아요 {{ post.likes.count }}</span>
   </section>
 
   <section class="comments">

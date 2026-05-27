@@ -1,8 +1,12 @@
+import hashlib
+
 from django.contrib import messages
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, F, Q
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from asciiart.converters import ConversionError
@@ -13,14 +17,67 @@ from .forms import CommentForm, PostForm
 from .models import Like, Post
 
 
+def _hash_uploaded_file(uploaded_file):
+    hasher = hashlib.sha256()
+    for chunk in uploaded_file.chunks():
+        hasher.update(chunk)
+
+    if hasattr(uploaded_file, "seek"):
+        uploaded_file.seek(0)
+
+    return hasher.hexdigest()
+
+
+def _find_duplicate_upload(user, form, media_type, source_hash):
+    cleaned_data = form.cleaned_data
+    posts = Post.objects.filter(
+        author=user,
+        media_type=media_type,
+        source_hash=source_hash,
+        title=cleaned_data.get("title", ""),
+        content=cleaned_data.get("content", ""),
+        char_style=cleaned_data.get("char_style"),
+        max_frames=cleaned_data.get("max_frames"),
+        frame_interval=cleaned_data.get("frame_interval"),
+        gif_duration=cleaned_data.get("gif_duration"),
+    )
+
+    ascii_width = cleaned_data.get("ascii_width")
+    if ascii_width:
+        posts = posts.filter(ascii_width=ascii_width)
+
+    return posts.order_by("-created_at").first()
+
+
 def post_list(request):
+    if not request.user.is_authenticated:
+        return render(
+            request,
+            "registration/login.html",
+            {
+                "form": AuthenticationForm(request),
+                "next": request.get_full_path(),
+                "is_index_login": True,
+            },
+        )
+
     query = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "latest")
+    scope = request.GET.get("scope", "all")
 
-    posts = Post.objects.select_related("author").annotate(like_count=Count("likes"))
+    posts = Post.objects.select_related("author")
 
     if query:
         posts = posts.filter(Q(title__icontains=query) | Q(content__icontains=query))
+
+    if scope == "saved":
+        posts = posts.filter(likes__user=request.user)
+    elif scope == "mine":
+        posts = posts.filter(author=request.user)
+    else:
+        scope = "all"
+
+    posts = posts.annotate(like_count=Count("likes", distinct=True))
 
     if sort == "views":
         posts = posts.order_by("-view_count", "-created_at")
@@ -36,6 +93,10 @@ def post_list(request):
             "posts": posts,
             "query": query,
             "sort": sort,
+            "scope": scope,
+            "saved_post_ids": set(
+                Like.objects.filter(user=request.user).values_list("post_id", flat=True)
+            ),
         },
     )
 
@@ -45,10 +106,25 @@ def post_create(request):
     if request.method == "POST":
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
+            uploaded_image = request.FILES.get("image")
+            uploaded_video = request.FILES.get("video")
+            media_type = Post.MediaType.IMAGE if uploaded_image else Post.MediaType.VIDEO
+            source_hash = _hash_uploaded_file(uploaded_image or uploaded_video)
+            duplicate_post = _find_duplicate_upload(
+                request.user,
+                form,
+                media_type,
+                source_hash,
+            )
+            if duplicate_post:
+                messages.info(request, "이미 같은 업로드가 있어 기존 게시글로 이동했습니다.")
+                return redirect("post_detail", post_id=duplicate_post.pk)
+
             post = form.save(commit=False)
             post.author = request.user
             post.status = Post.Status.PENDING
-            if request.FILES.get("image"):
+            post.source_hash = source_hash
+            if uploaded_image:
                 post.media_type = Post.MediaType.IMAGE
                 post.video = None
             else:
@@ -114,11 +190,13 @@ def post_update(request, post_id):
             media_changed = image_changed or video_changed
 
             if image_changed:
+                updated_post.source_hash = _hash_uploaded_file(request.FILES["image"])
                 if previous_video_name:
                     post.video.storage.delete(previous_video_name)
                 updated_post.video = None
                 updated_post.media_type = Post.MediaType.IMAGE
             elif video_changed:
+                updated_post.source_hash = _hash_uploaded_file(request.FILES["video"])
                 if previous_image_name:
                     post.image.storage.delete(previous_image_name)
                 updated_post.image = None
@@ -159,6 +237,8 @@ def post_delete(request, post_id):
             post.image.delete(save=False)
         if post.video:
             post.video.delete(save=False)
+        if post.ascii_image:
+            post.ascii_image.delete(save=False)
         if post.ascii_gif:
             post.ascii_gif.delete(save=False)
         post.delete()
@@ -202,6 +282,14 @@ def toggle_like(request, post_id):
     like, created = Like.objects.get_or_create(post=post, user=request.user)
     if not created:
         like.delete()
+
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
     return redirect("post_detail", post_id=post.pk)
 
 
