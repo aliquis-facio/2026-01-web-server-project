@@ -61,7 +61,7 @@
 
     <div class="media-panel">
       <div class="media-panel-heading">
-        <h2>{% if post.is_image %}변환된 ASCII 이미지{% else %}변환된 ASCII 영상{% endif %}</h2>
+        <h2>{% if post.is_image %}ASCII 이미지{% else %}ASCII 영상{% endif %}</h2>
       </div>
       {% if post.ascii_image %}
         <img class="source-preview ascii-preview-image" src="{{ post.ascii_image.url }}" alt="{{ post.title }} ASCII 이미지">

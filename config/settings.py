@@ -81,5 +81,5 @@ DEFAULT_MAX_FRAMES = 10
 DEFAULT_FRAME_INTERVAL = 30
 DEFAULT_GIF_DURATION = 100
 
-SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".webm"}
+SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".webm", ".gif"}
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}

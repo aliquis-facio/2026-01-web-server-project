@@ -20,8 +20,9 @@ python manage.py runserver
 - 영상 업로드
 - 이미지 업로드
 - 이미지 -> ASCII ART 변환
-- OpenCV 기반 프레임 추출
-- 영상 -> ASCII 애니메이션 변환
+- OpenCV 기반 영상 프레임 추출
+- GIF 프레임 시퀀스 추출
+- 영상/GIF -> ASCII 애니메이션 변환
 - 자체 그레이스케일 매핑 기반 ASCII 변환
 - Pillow 기반 ASCII GIF 생성
 - ASCII TXT/GIF 다운로드
