@@ -48,10 +48,12 @@
   <section class="media-grid media-comparison">
     <div class="media-panel">
       <div class="media-panel-heading">
-        <h2>{% if post.is_image %}원본 이미지{% else %}원본 영상{% endif %}</h2>
+        <h2>{% if post.is_gif_upload %}원본 GIF{% elif post.is_image %}원본 이미지{% else %}원본 영상{% endif %}</h2>
       </div>
       {% if post.image %}
         <img class="source-preview" src="{{ post.image.url }}" alt="{{ post.title }} 원본 이미지">
+      {% elif post.video and post.is_gif_upload %}
+        <img class="source-preview" src="{{ post.video.url }}" alt="{{ post.title }} 원본 GIF">
       {% elif post.video %}
         <video class="source-preview" src="{{ post.video.url }}" controls></video>
       {% else %}

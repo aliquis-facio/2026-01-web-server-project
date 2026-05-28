@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
@@ -71,6 +73,15 @@ class Post(models.Model):
     @property
     def is_video(self):
         return self.media_type == self.MediaType.VIDEO
+
+    @property
+    def is_gif_upload(self):
+        source_name = ""
+        if self.image:
+            source_name = self.image.name
+        elif self.video:
+            source_name = self.video.name
+        return Path(source_name).suffix.lower() == ".gif"
 
 
 class AsciiFrame(models.Model):

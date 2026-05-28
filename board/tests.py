@@ -136,3 +136,34 @@ class DownloadAsciiFrameTests(TestCase):
         self.assertContains(response, "ASCII 이미지/영상")
         self.assertNotContains(response, "ASCII 텍스트 프레임")
         self.assertContains(response, 'id="download-current-frame"')
+
+    def test_detail_page_renders_gif_video_upload_as_image(self):
+        self.post.video = "videos/animated.gif"
+        self.post.save(update_fields=["video"])
+
+        response = self.client.get(
+            reverse("post_detail", kwargs={"post_id": self.post.pk})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "원본 GIF")
+        self.assertContains(response, '<img class="source-preview" src="/media/videos/animated.gif"')
+        self.assertNotContains(response, '<video class="source-preview" src="/media/videos/animated.gif"')
+
+
+class FeedNavigationTests(TestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(username="author", password="test")
+        Post.objects.create(author=self.author, title="feed item")
+
+    def test_feed_keeps_global_actions_out_of_local_filters(self):
+        self.client.force_login(self.author)
+
+        response = self.client.get(reverse("post_list"))
+        content = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(content.count('href="/create/">업로드</a>'), 1)
+        self.assertNotIn('<a class="nav-link" href="/">피드</a>', content)
+        self.assertNotIn('<a class="nav-link" href="/?scope=saved">저장</a>', content)
+        self.assertIn('href="/?scope=saved&sort=latest">저장됨</a>', content)
