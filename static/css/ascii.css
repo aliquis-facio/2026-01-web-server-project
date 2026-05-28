@@ -657,7 +657,8 @@ video {
   white-space: pre;
 }
 
-.player-section .ascii-art {
+.player-section .ascii-art,
+.ascii-player-frame {
   overflow: hidden;
 }
 
@@ -668,6 +669,10 @@ video {
 
 .download-row {
   padding: 2px 0;
+}
+
+.ascii-downloads {
+  margin-top: 12px;
 }
 
 .form-stack {

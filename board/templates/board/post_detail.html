@@ -61,40 +61,32 @@
 
     <div class="media-panel">
       <div class="media-panel-heading">
-        <h2>{% if post.is_image %}ASCII 이미지{% else %}ASCII 영상{% endif %}</h2>
+        <h2>ASCII 이미지/영상</h2>
+        {% if post.is_video and ascii_frames|length > 1 %}
+          <div class="action-row">
+            <button class="button button-secondary" id="ascii-prev" type="button">이전</button>
+            <button class="button button-secondary" id="ascii-toggle" type="button">정지</button>
+            <button class="button button-secondary" id="ascii-next" type="button">다음</button>
+          </div>
+        {% endif %}
       </div>
-      {% if post.ascii_image %}
-        <img class="source-preview ascii-preview-image" src="{{ post.ascii_image.url }}" alt="{{ post.title }} ASCII 이미지">
-      {% elif post.ascii_gif %}
-        <img class="source-preview ascii-preview-image" src="{{ post.ascii_gif.url }}" alt="{{ post.title }} ASCII GIF">
-      {% else %}
-        <pre class="ascii-art ascii-art-compact">{% if ascii_frames %}{{ ascii_frames.0 }}{% else %}ASCII 변환 결과가 없습니다.{% endif %}</pre>
-      {% endif %}
-    </div>
-  </section>
-
-  <section class="player-section">
-    <div class="media-panel-heading">
-      <h2>ASCII 텍스트 프레임</h2>
-      {% if post.is_video and ascii_frames|length > 1 %}
-        <div class="action-row">
-          <button class="button button-secondary" id="ascii-prev" type="button">이전</button>
-          <button class="button button-secondary" id="ascii-toggle" type="button">정지</button>
-          <button class="button button-secondary" id="ascii-next" type="button">다음</button>
+      {{ ascii_frames|json_script:"ascii-frames-data" }}
+      <pre id="ascii-player" class="ascii-art ascii-player-frame" data-duration="{{ post.gif_duration }}" data-columns="{{ post.ascii_width|default:100 }}">{% if ascii_frames %}{{ ascii_frames.0 }}{% else %}ASCII 프레임이 없습니다.{% endif %}</pre>
+      {% if ascii_frames %}
+        <div class="download-row ascii-downloads">
+          <a class="button button-secondary" href="{% url 'download_ascii_txt' post.pk %}">첫 프레임 TXT</a>
+          {% if ascii_frames|length > 1 %}
+            <a class="button button-secondary" id="download-current-frame" href="{% url 'download_ascii_txt' post.pk %}?frame=1">현재 프레임 TXT</a>
+          {% endif %}
+          {% if post.is_video and post.ascii_gif %}
+            <a class="button button-secondary" href="{% url 'download_ascii_gif' post.pk %}">GIF 다운로드</a>
+          {% endif %}
         </div>
       {% endif %}
     </div>
-    {{ ascii_frames|json_script:"ascii-frames-data" }}
-    <pre id="ascii-player" class="ascii-art" data-duration="{{ post.gif_duration }}" data-columns="{{ post.ascii_width|default:100 }}">{% if ascii_frames %}{{ ascii_frames.0 }}{% else %}ASCII 프레임이 없습니다.{% endif %}</pre>
-    <script src="{% static 'js/ascii_player.js' %}"></script>
   </section>
 
-  <section class="download-row">
-    <a class="button button-secondary" href="{% url 'download_ascii_txt' post.pk %}">TXT 다운로드</a>
-    {% if post.is_video and post.ascii_gif %}
-      <a class="button button-secondary" href="{% url 'download_ascii_gif' post.pk %}">GIF 다운로드</a>
-    {% endif %}
-  </section>
+  <script src="{% static 'js/ascii_player.js' %}"></script>
 
   <section class="comments">
     <div class="section-heading">

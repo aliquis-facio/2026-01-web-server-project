@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggle = document.getElementById("ascii-toggle");
   const prev = document.getElementById("ascii-prev");
   const next = document.getElementById("ascii-next");
+  const currentFrameDownload = document.getElementById("download-current-frame");
 
   let index = 0;
   let playing = true;
@@ -39,6 +40,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const render = () => {
     player.textContent = frames[index];
+    player.dataset.currentFrame = String(index + 1);
+    if (currentFrameDownload) {
+      const href = new URL(currentFrameDownload.href, window.location.href);
+      href.searchParams.set("frame", String(index + 1));
+      currentFrameDownload.href = href.pathname + href.search;
+    }
     fitAsciiToPanel();
   };
 

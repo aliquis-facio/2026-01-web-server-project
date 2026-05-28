@@ -259,13 +259,23 @@ def download_ascii_txt(request, post_id):
     if not post.ascii_frames.exists():
         raise Http404("다운로드할 ASCII 프레임이 없습니다.")
 
-    blocks = []
-    for frame in post.ascii_frames.all():
-        label = "ASCII ART" if post.is_image else f"FRAME {frame.frame_index}"
-        blocks.append(f"[{label}]\n\n{frame.ascii_text}")
+    requested_frame = request.GET.get("frame")
+    try:
+        frame_index = int(requested_frame) if requested_frame else 1
+    except ValueError:
+        frame_index = 1
 
-    response = HttpResponse("\n\n".join(blocks), content_type="text/plain; charset=utf-8")
-    response["Content-Disposition"] = f'attachment; filename="post_{post.pk}_ascii.txt"'
+    frame = post.ascii_frames.filter(frame_index=frame_index).first()
+    if not frame:
+        raise Http404("다운로드할 ASCII 프레임이 없습니다.")
+
+    label = "ASCII IMAGE" if post.is_image else f"ASCII VIDEO FRAME {frame.frame_index}"
+    content = f"[{label}]\n\n{frame.ascii_text}"
+
+    response = HttpResponse(content, content_type="text/plain; charset=utf-8")
+    response["Content-Disposition"] = (
+        f'attachment; filename="post_{post.pk}_ascii_frame_{frame.frame_index}.txt"'
+    )
     return response
 
 

@@ -1,10 +1,12 @@
 from io import BytesIO
 
+from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 
 from .forms import PostForm
-from .models import Post
+from .models import AsciiFrame, Post
 
 
 class PostFormMediaDetectionTests(SimpleTestCase):
@@ -77,3 +79,60 @@ class PostFormMediaDetectionTests(SimpleTestCase):
 
         self.assertTrue(form.is_valid(), form.errors.as_data())
         self.assertEqual(form.detected_media_type, Post.MediaType.VIDEO)
+
+
+class DownloadAsciiFrameTests(TestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(username="author", password="test")
+        self.post = Post.objects.create(
+            author=self.author,
+            title="ascii video",
+            media_type=Post.MediaType.VIDEO,
+        )
+        AsciiFrame.objects.create(
+            post=self.post,
+            frame_index=1,
+            ascii_text="first frame",
+        )
+        AsciiFrame.objects.create(
+            post=self.post,
+            frame_index=2,
+            ascii_text="second frame",
+        )
+
+    def test_download_ascii_txt_defaults_to_first_frame(self):
+        response = self.client.get(
+            reverse("download_ascii_txt", kwargs={"post_id": self.post.pk})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"first frame", response.content)
+        self.assertNotIn(b"second frame", response.content)
+        self.assertIn(
+            f'post_{self.post.pk}_ascii_frame_1.txt',
+            response.headers["Content-Disposition"],
+        )
+
+    def test_download_ascii_txt_can_select_current_frame(self):
+        response = self.client.get(
+            reverse("download_ascii_txt", kwargs={"post_id": self.post.pk}),
+            {"frame": 2},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"first frame", response.content)
+        self.assertIn(b"second frame", response.content)
+        self.assertIn(
+            f'post_{self.post.pk}_ascii_frame_2.txt',
+            response.headers["Content-Disposition"],
+        )
+
+    def test_detail_page_uses_unified_ascii_panel(self):
+        response = self.client.get(
+            reverse("post_detail", kwargs={"post_id": self.post.pk})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ASCII 이미지/영상")
+        self.assertNotContains(response, "ASCII 텍스트 프레임")
+        self.assertContains(response, 'id="download-current-frame"')
