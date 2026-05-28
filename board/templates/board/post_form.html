@@ -24,19 +24,11 @@
       {{ form.content.errors }}
     </label>
 
-    <div class="upload-grid">
-      <label>
-        이미지 파일
-        {{ form.image }}
-        {{ form.image.errors }}
-      </label>
-
-      <label>
-        영상 파일
-        {{ form.video }}
-        {{ form.video.errors }}
-      </label>
-    </div>
+    <label>
+      파일
+      {{ form.media_file }}
+      {{ form.media_file.errors }}
+    </label>
 
     <div class="option-grid">
       <label>
@@ -46,17 +38,17 @@
         {{ form.ascii_width.errors }}
       </label>
       <label>
-        추출 프레임 수(영상)
+        추출 프레임 수(영상/GIF)
         {{ form.max_frames }}
         {{ form.max_frames.errors }}
       </label>
       <label>
-        프레임 간격(영상)
+        프레임 간격(영상/GIF)
         {{ form.frame_interval }}
         {{ form.frame_interval.errors }}
       </label>
       <label>
-        GIF 속도(ms, 영상)
+        GIF 속도(ms, 영상/GIF)
         {{ form.gif_duration }}
         {{ form.gif_duration.errors }}
       </label>

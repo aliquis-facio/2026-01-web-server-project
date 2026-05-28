@@ -17,8 +17,7 @@ python manage.py runserver
 
 - 회원가입, 로그인, 로그아웃
 - 게시글 CRUD
-- 영상 업로드
-- 이미지 업로드
+- 이미지/영상/GIF 단일 파일 업로드
 - 이미지 -> ASCII ART 변환
 - OpenCV 기반 영상 프레임 추출
 - GIF 프레임 시퀀스 추출

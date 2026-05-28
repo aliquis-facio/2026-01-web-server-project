@@ -106,10 +106,9 @@ def post_create(request):
     if request.method == "POST":
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
-            uploaded_image = request.FILES.get("image")
-            uploaded_video = request.FILES.get("video")
-            media_type = Post.MediaType.IMAGE if uploaded_image else Post.MediaType.VIDEO
-            source_hash = _hash_uploaded_file(uploaded_image or uploaded_video)
+            uploaded_file = request.FILES.get("media_file")
+            media_type = form.detected_media_type
+            source_hash = _hash_uploaded_file(uploaded_file)
             duplicate_post = _find_duplicate_upload(
                 request.user,
                 form,
@@ -124,11 +123,12 @@ def post_create(request):
             post.author = request.user
             post.status = Post.Status.PENDING
             post.source_hash = source_hash
-            if uploaded_image:
-                post.media_type = Post.MediaType.IMAGE
+            post.media_type = media_type
+            if media_type == Post.MediaType.IMAGE:
+                post.image = uploaded_file
                 post.video = None
             else:
-                post.media_type = Post.MediaType.VIDEO
+                post.video = uploaded_file
                 post.image = None
             post.save()
             try:
@@ -185,20 +185,26 @@ def post_update(request, post_id):
         form = PostForm(request.POST, request.FILES, instance=post)
         if form.is_valid():
             updated_post = form.save(commit=False)
-            image_changed = bool(request.FILES.get("image"))
-            video_changed = bool(request.FILES.get("video"))
-            media_changed = image_changed or video_changed
+            uploaded_file = request.FILES.get("media_file")
+            media_changed = bool(uploaded_file)
 
-            if image_changed:
-                updated_post.source_hash = _hash_uploaded_file(request.FILES["image"])
-                if previous_video_name:
-                    post.video.storage.delete(previous_video_name)
-                updated_post.video = None
-                updated_post.media_type = Post.MediaType.IMAGE
-            elif video_changed:
-                updated_post.source_hash = _hash_uploaded_file(request.FILES["video"])
+            if media_changed:
+                updated_post.source_hash = _hash_uploaded_file(uploaded_file)
+
+            if media_changed and form.detected_media_type == Post.MediaType.IMAGE:
                 if previous_image_name:
                     post.image.storage.delete(previous_image_name)
+                if previous_video_name:
+                    post.video.storage.delete(previous_video_name)
+                updated_post.image = uploaded_file
+                updated_post.video = None
+                updated_post.media_type = Post.MediaType.IMAGE
+            elif media_changed and form.detected_media_type == Post.MediaType.VIDEO:
+                if previous_image_name:
+                    post.image.storage.delete(previous_image_name)
+                if previous_video_name:
+                    post.video.storage.delete(previous_video_name)
+                updated_post.video = uploaded_file
                 updated_post.image = None
                 updated_post.media_type = Post.MediaType.VIDEO
 
